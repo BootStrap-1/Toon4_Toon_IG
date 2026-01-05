@@ -1,0 +1,38 @@
+name: Toon4_Toon Instagram Bot
+
+on:
+  schedule:
+    # Runs every 8 hours
+    - cron: "0 */8 * * *"
+  workflow_dispatch:   # Allows manual run
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
+      - name: 🤖 Run Toon4_Toon Instagram Bot
+        env:
+          TOON4_TOON_IG_TOKEN: ${{ secrets.TOON4_TOON_IG_TOKEN }}
+          TOON4_TOON_IG_USER_ID: ${{ secrets.TOON4_TOON_IG_USER_ID }}
+          TOON4_TOON_CLOUD_NAME: ${{ secrets.TOON4_TOON_CLOUD_NAME }}
+          TOON4_TOON_API_KEY: ${{ secrets.TOON4_TOON_API_KEY }}
+          TOON4_TOON_API_SECRET: ${{ secrets.TOON4_TOON_API_SECRET }}
+        run: |
+          python bot.py
+
+      - name: ✅ Done
+        run: echo "Toon4_Toon bot finished successfully"
