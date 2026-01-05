@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from requests.auth import HTTPBasicAuth
 
 # ================= CONFIG =================
-TEST_MODE = False        # 🧪 True = test only | 🚀 False = live
+TEST_MODE = False          # True = test only | False = LIVE
 MAX_RETRIES = 3
 RETRY_DELAY = 60
 
@@ -13,19 +13,18 @@ DAILY_LOG = "daily_log.txt"
 # ================= TIME =================
 IST = timezone(timedelta(hours=5, minutes=30))
 
-# ================= ENV (Toon4_Toon) =================
-IG_TOKEN = os.getenv("TOON4_TOON_IG_TOKEN")
+# ================= SECRETS (Toon4_Toon) =================
+IG_TOKEN   = os.getenv("TOON4_TOON_IG_TOKEN")
 IG_USER_ID = os.getenv("TOON4_TOON_IG_USER_ID")
-
 CLOUD_NAME = os.getenv("TOON4_TOON_CLOUD_NAME")
-API_KEY = os.getenv("TOON4_TOON_API_KEY")
+API_KEY    = os.getenv("TOON4_TOON_API_KEY")
 API_SECRET = os.getenv("TOON4_TOON_API_SECRET")
 
 if not all([IG_TOKEN, IG_USER_ID, CLOUD_NAME, API_KEY, API_SECRET]):
-    print("❌ ERROR: Missing Toon4_Toon secrets")
+    print("❌ Missing Toon4_Toon secrets")
     exit(1)
 
-print("✅ Secrets loaded for Toon4_Toon")
+print("✅ Secrets loaded")
 
 # ================= CAPTION =================
 CAPTIONS = [
@@ -85,7 +84,7 @@ def get_videos():
         if not cursor:
             break
 
-    print(f"🎞️ New videos available: {len(videos)}")
+    print(f"🎞️ New videos found: {len(videos)}")
     return videos
 
 # ================= INSTAGRAM UPLOAD =================
@@ -93,7 +92,7 @@ def upload_instagram(video_url):
     caption = make_caption()
 
     if TEST_MODE:
-        print("🧪 TEST MODE ENABLED")
+        print("🧪 TEST MODE")
         print("🎬 Would upload:", video_url)
         print("📝 Caption:", caption)
         return True
@@ -117,15 +116,12 @@ def upload_instagram(video_url):
             continue
 
         creation_id = r["id"]
-        print("⏳ Media created, processing...")
+        print("⏳ Processing reel...")
 
         for _ in range(12):
             s = requests.get(
                 f"https://graph.facebook.com/v19.0/{creation_id}",
-                params={
-                    "fields": "status_code",
-                    "access_token": IG_TOKEN
-                }
+                params={"fields": "status_code", "access_token": IG_TOKEN}
             ).json()
 
             if s.get("status_code") == "FINISHED":
@@ -137,44 +133,38 @@ def upload_instagram(video_url):
 
         pub = requests.post(
             f"https://graph.facebook.com/v19.0/{IG_USER_ID}/media_publish",
-            data={
-                "creation_id": creation_id,
-                "access_token": IG_TOKEN
-            }
+            data={"creation_id": creation_id, "access_token": IG_TOKEN}
         ).json()
 
         if "id" in pub:
-            print("✅ Reel published successfully 🎉")
+            print("✅ Reel published 🎉")
             return True
 
         print("⚠️ Publish failed, retrying...")
         time.sleep(RETRY_DELAY)
 
-    print("❌ Upload failed after all retries")
+    print("❌ Upload failed after retries")
     return False
 
 # ================= GIT COMMIT =================
 def git_commit():
     if TEST_MODE:
-        print("🧪 Test mode: skipping GitHub commit")
+        print("🧪 Test mode → skipping git commit")
         return
 
     subprocess.run(["git", "config", "user.name", "toon4_toon_bot"])
     subprocess.run(["git", "config", "user.email", "bot@toon4toon"])
     subprocess.run(["git", "add", UPLOAD_LOG, DAILY_LOG])
-    subprocess.run(
-        ["git", "commit", "-m", "🎬 Toon4_Toon: Instagram reel uploaded"],
-        check=False
-    )
+    subprocess.run(["git", "commit", "-m", "🎬 Toon4_Toon reel uploaded"], check=False)
     subprocess.run(["git", "push"], check=False)
-    print("📤 Logs committed to GitHub")
+    print("📤 Logs pushed to GitHub")
 
 # ================= MAIN =================
 print("🤖 Toon4_Toon Bot Started")
 
 videos = get_videos()
 if not videos:
-    print("😴 No new videos found")
+    print("😴 No new videos")
     exit()
 
 video = random.choice(videos)
@@ -184,6 +174,6 @@ if upload_instagram(video["secure_url"]):
     write_file(UPLOAD_LOG, video["secure_url"])
     write_file(DAILY_LOG, f"{today()}|posted")
     git_commit()
-    print("🎉 All done successfully")
+    print("🎉 All done")
 else:
-    print("❌ Flow ended with error")
+    print("❌ Bot finished with error")
