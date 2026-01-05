@@ -32,7 +32,7 @@ jobs:
           TOON4_TOON_API_KEY: ${{ secrets.TOON4_TOON_API_KEY }}
           TOON4_TOON_API_SECRET: ${{ secrets.TOON4_TOON_API_SECRET }}
         run: |
-          python bot.py
+          python Toon.py
 
       - name: ✅ Done
         run: echo "Toon4_Toon bot finished successfully"
