@@ -1,14 +1,14 @@
-import os, time, random, subprocess, requests
+import os, time, random, subprocess, requests, traceback
 from datetime import datetime, timedelta, timezone
 from requests.auth import HTTPBasicAuth
 
 # ================= CONFIG =================
-TEST_MODE = False          # True = test only | False = LIVE
+TEST_MODE = False
 MAX_RETRIES = 3
 RETRY_DELAY = 60
 
 UPLOAD_LOG = "uploaded.txt"
-DAILY_LOG = "daily_log.txt"
+DAILY_LOG  = "daily_log.txt"
 
 # ================= TIME =================
 IST = timezone(timedelta(hours=5, minutes=30))
@@ -16,15 +16,49 @@ IST = timezone(timedelta(hours=5, minutes=30))
 # ================= SECRETS =================
 IG_TOKEN   = os.getenv("TOON4_TOON_IG_TOKEN")
 IG_USER_ID = os.getenv("TOON4_TOON_IG_USER_ID")
+
 CLOUD_NAME = os.getenv("TOON4_TOON_CLOUD_NAME")
 API_KEY    = os.getenv("TOON4_TOON_API_KEY")
 API_SECRET = os.getenv("TOON4_TOON_API_SECRET")
+
+TG_BOT_TOKEN = os.getenv("TG_BOT_TOKEN")
+TG_CHAT_ID   = os.getenv("TG_CHAT_ID")
+CHANNEL_NAME = os.getenv("CHANNEL_NAME", "Instagram Channel")
 
 if not all([IG_TOKEN, IG_USER_ID, CLOUD_NAME, API_KEY, API_SECRET]):
     print("❌ Missing secrets")
     exit(1)
 
 print("✅ Secrets loaded")
+
+# ================= TELEGRAM =================
+def tg_send(msg):
+    if not TG_BOT_TOKEN or not TG_CHAT_ID:
+        return
+    requests.post(
+        f"https://api.telegram.org/bot{TG_BOT_TOKEN}/sendMessage",
+        data={"chat_id": TG_CHAT_ID, "text": msg},
+        timeout=10
+    )
+
+def notify_success():
+    time_now = datetime.now(IST).strftime("%d %b %Y | %H:%M IST")
+    msg = (
+        "✅ Instagram Reel Uploaded Successfully\n\n"
+        f"📸 Page: {CHANNEL_NAME}\n"
+        f"⏰ Time: {time_now}"
+    )
+    tg_send(msg)
+
+def notify_failure(reason):
+    time_now = datetime.now(IST).strftime("%d %b %Y | %H:%M IST")
+    msg = (
+        "❌ Instagram Reel Upload FAILED\n\n"
+        f"📸 Page: {CHANNEL_NAME}\n"
+        f"⏰ Time: {time_now}\n"
+        f"⚠️ Reason: {reason}"
+    )
+    tg_send(msg)
 
 # ================= CAPTION =================
 CAPTIONS = [
@@ -33,6 +67,7 @@ CAPTIONS = [
     "Reality hits different",
     "Relatable cartoon moment",
 ]
+
 HASHTAGS = ["#reels", "#cartoon", "#animation"]
 
 def make_caption():
@@ -105,7 +140,6 @@ def upload_instagram(video_url):
         ).json()
 
         if "id" not in r:
-            print("⚠️ Upload failed, retrying...")
             time.sleep(RETRY_DELAY)
             continue
 
@@ -130,37 +164,42 @@ def upload_instagram(video_url):
         ).json()
 
         if "id" in pub:
-            print("✅ Reel published 🎉")
             return True
 
         time.sleep(RETRY_DELAY)
 
     return False
 
-# ================= GIT PUSH =================
+# ================= GIT =================
 def git_commit():
     subprocess.run(["git", "config", "user.name", "toon4_toon_bot"])
     subprocess.run(["git", "config", "user.email", "bot@toon4toon"])
     subprocess.run(["git", "add", UPLOAD_LOG, DAILY_LOG])
     subprocess.run(["git", "commit", "-m", "🎬 Reel uploaded"], check=False)
     subprocess.run(["git", "push"], check=False)
-    print("📤 Logs pushed to GitHub")
 
 # ================= MAIN =================
-print("🤖 Toon4_Toon Bot Started")
+print("🤖 Toon4_Toon IG Bot Started")
 
-videos = get_videos()
-if not videos:
-    print("😴 No new videos")
-    exit()
+try:
+    videos = get_videos()
+    if not videos:
+        notify_failure("No new videos in Cloudinary")
+        exit()
 
-video = random.choice(videos)
-print("🎯 Video selected")
+    video = random.choice(videos)
+    print("🎯 Video selected")
 
-if upload_instagram(video["secure_url"]):
-    write_file(UPLOAD_LOG, video["secure_url"])
-    write_file(DAILY_LOG, f"{today()}|posted")
-    git_commit()
-    print("🎉 All done")
-else:
-    print("❌ Upload failed")
+    if upload_instagram(video["secure_url"]):
+        write_file(UPLOAD_LOG, video["secure_url"])
+        write_file(DAILY_LOG, f"{today()}|posted")
+        git_commit()
+        notify_success()
+        print("🎉 All done")
+    else:
+        notify_failure("Instagram API upload failed")
+        print("❌ Upload failed")
+
+except Exception as e:
+    notify_failure(str(e))
+    traceback.print_exc()
