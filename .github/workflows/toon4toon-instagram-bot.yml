@@ -1,7 +1,7 @@
 name: Toon4_Toon Instagram Bot
 
 permissions:
-  contents: write   # 🔥 VERY IMPORTANT
+  contents: write
 
 on:
   schedule:
@@ -27,12 +27,21 @@ jobs:
         run: |
           pip install requests
 
-      - name: 🤖 Run Toon4_Toon Bot
+      - name: 🤖 Run Toon4_Toon IG Bot
         env:
+          # Instagram
           TOON4_TOON_IG_TOKEN: ${{ secrets.TOON4_TOON_IG_TOKEN }}
           TOON4_TOON_IG_USER_ID: ${{ secrets.TOON4_TOON_IG_USER_ID }}
+
+          # Cloudinary
           TOON4_TOON_CLOUD_NAME: ${{ secrets.TOON4_TOON_CLOUD_NAME }}
           TOON4_TOON_API_KEY: ${{ secrets.TOON4_TOON_API_KEY }}
           TOON4_TOON_API_SECRET: ${{ secrets.TOON4_TOON_API_SECRET }}
+
+          # 🔥 Telegram (THIS WAS MISSING)
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
+          CHANNEL_NAME: ${{ secrets.CHANNEL_NAME }}
+
         run: |
           python Toon.py
