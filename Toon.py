@@ -62,13 +62,13 @@ def notify_failure(reason):
 
 # ================= CAPTION =================
 CAPTIONS = [
-    "Parents vs Dreams",
-    "Middle class life be like",
-    "Reality hits different",
-    "Relatable cartoon moment",
+    "This story doesn’t exist anywhere else",
+    "Watch till the end! The twist is crazy",
+    "AI wrote this… but it feels real",
+    "One story. One twist. Pure AI"
 ]
 
-HASHTAGS = ["#reels", "#cartoon", "#animation"]
+HASHTAGS = ["#viral", "#trending", "#trendingreels", "#aistroytelling"]
 
 def make_caption():
     return f"{random.choice(CAPTIONS)}\n\n{' '.join(HASHTAGS)}"
